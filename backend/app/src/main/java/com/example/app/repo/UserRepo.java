@@ -1,0 +1,25 @@
+package com.example.app.repo;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.app.entity.User;
+
+public interface UserRepo extends JpaRepository<User, Long>{
+    //repo for string boot to automatically update, insert, delete, ... 
+
+    boolean existsByEmail(String email);
+
+    boolean existsByPhone(String phone);
+
+    boolean existsByUsername(String username);
+
+    Optional<User> findByUsername(String username);
+
+    Optional<User> findByUsernameOrEmailOrPhone(String username, String email, String phone);
+
+    @Transactional
+    void deleteByUsername(String username);
+} 
