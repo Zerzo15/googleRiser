@@ -2,9 +2,9 @@ package com.example.app.repo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.example.app.entity.User;
+import com.example.app.entity.CompanyProfile;
 
-public interface CompanyProfileRepo extends JpaRepository<User, Long>{
+public interface CompanyProfileRepo extends JpaRepository<CompanyProfile, Long>{
 
 
 } 

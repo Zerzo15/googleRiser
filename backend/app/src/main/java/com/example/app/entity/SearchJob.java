@@ -17,13 +17,14 @@ public class SearchJob {
     @JoinColumn(name = "user_id")
     private User requestedBy; // Links directly to your existing User.java
 
-    private String status; // e.g., PENDING, PROCESSING, COMPLETE, FAILED
+    @Enumerated
+    private SearchJobStatus status;
 
     public Long getId() { return id; }
     public Company getCompany() { return company; }
     public void setCompany(Company company) { this.company = company; }
     public User getRequestedBy() { return requestedBy; }
     public void setRequestedBy(User requestedBy) { this.requestedBy = requestedBy; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public SearchJobStatus getStatus() { return status; }
+    public void setStatus(SearchJobStatus status) { this.status = status; }
 }
