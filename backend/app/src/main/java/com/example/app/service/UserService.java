@@ -92,7 +92,7 @@ public class UserService {
         
         return new TokenResponse(token);
     }
- 
+
     public UserDto getUserProfile(Long id) throws Exception {
         User user =  userRepo.findById(id).orElseThrow(() -> new Exception("User not found"));
 

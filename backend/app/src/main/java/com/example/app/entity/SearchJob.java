@@ -1,0 +1,29 @@
+package com.example.app.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "search_jobs")
+public class SearchJob {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "company_id")
+    private Company company;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User requestedBy; // Links directly to your existing User.java
+
+    private String status; // e.g., PENDING, PROCESSING, COMPLETE, FAILED
+
+    public Long getId() { return id; }
+    public Company getCompany() { return company; }
+    public void setCompany(Company company) { this.company = company; }
+    public User getRequestedBy() { return requestedBy; }
+    public void setRequestedBy(User requestedBy) { this.requestedBy = requestedBy; }
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+}
