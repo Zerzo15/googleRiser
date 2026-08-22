@@ -79,4 +79,13 @@ public class CompanyController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping("/{companyId}/sources")
+    public ResponseEntity<?> getCompanySources(@PathVariable Long companyId) {
+        try {
+            return ResponseEntity.ok(companyService.getSources(companyId));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
 }
