@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
@@ -20,7 +20,7 @@ const demoProfile = {
   ],
 }
 
-const recentSearches = [
+const demoRecentSearches = [
   { name: 'Nova Robotics', domain: 'novarobotics.ai', sector: 'Robotics & AI', status: 'Hoàn tất', time: '2 phút trước', tone: 'violet' },
   { name: 'GreenLoop Energy', domain: 'greenloop.vn', sector: 'CleanTech', status: 'Hoàn tất', time: 'Hôm qua', tone: 'green' },
   { name: 'Mekong Health', domain: 'mekonghealth.co', sector: 'HealthTech', status: 'Đang xử lý', time: 'Hôm qua', tone: 'orange' },
@@ -109,6 +109,18 @@ function mapSources(sources) {
   }))
 }
 
+function mapHistoryItem(item) {
+  const statusMap = { COMPLETE: 'Hoàn tất', PROCESSING: 'Đang xử lý', PENDING: 'Đang xử lý', FAILED: 'Thất bại' }
+  return {
+    name: item.company?.name || 'Doanh nghiệp chưa đặt tên',
+    domain: item.company?.domain || 'Chưa có tên miền',
+    sector: 'Company profile',
+    status: statusMap[item.status] || 'Đang xử lý',
+    time: `Tác vụ #${item.id}`,
+    tone: 'violet',
+  }
+}
+
 function mapProfile(payload, fallback, sources = []) {
   const company = payload?.company || {}
   const nextSources = sources.length ? mapSources(sources) : fallback.sources
@@ -134,6 +146,7 @@ function App() {
   const [query, setQuery] = useState('Nova Robotics')
   const [domain, setDomain] = useState('novarobotics.ai')
   const [profile, setProfile] = useState(demoProfile)
+  const [recentSearches, setRecentSearches] = useState(demoRecentSearches)
   const [isResearching, setIsResearching] = useState(false)
   const [toast, setToast] = useState('')
   const [filter, setFilter] = useState('Tất cả')
@@ -149,13 +162,29 @@ function App() {
     if (filter === 'Đã hoàn tất') return recentSearches.filter((item) => item.status === 'Hoàn tất')
     if (filter === 'Đang xử lý') return recentSearches.filter((item) => item.status === 'Đang xử lý')
     return recentSearches
-  }, [filter])
+  }, [filter, recentSearches])
+
+  useEffect(() => {
+    if (!accessToken) return
+    apiRequest('/companies/history', { token: accessToken })
+      .then((history) => setRecentSearches(history.map(mapHistoryItem)))
+      .catch((error) => {
+        if (error.status === 401 || error.status === 403) {
+          window.localStorage.removeItem('token')
+          setAccessToken('')
+        }
+      })
+  }, [accessToken])
 
   const navigateTo = (destination) => {
     setActiveNav(destination)
     const targetId = { profiles: 'recent-section', sources: 'sources-section' }[destination]
     if (targetId) document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     if (destination === 'overview') window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const upsertRecentSearch = (entry) => {
+    setRecentSearches((current) => [entry, ...current.filter((item) => item.name !== entry.name)].slice(0, 6))
   }
 
   const notify = (message) => {
@@ -243,6 +272,7 @@ function App() {
       })
       window.clearTimeout(timeout)
       notify(`Đã tạo tác vụ #${job.jobId}. Đang tổng hợp dữ liệu...`)
+      upsertRecentSearch({ name: companyName, domain: companyDomain, sector: 'Company profile', status: 'Đang xử lý', time: `Tác vụ #${job.jobId}`, tone: 'violet' })
 
       let status = job.status
       for (let attempt = 0; attempt < 30 && status !== 'COMPLETE'; attempt += 1) {
@@ -258,6 +288,7 @@ function App() {
         apiRequest(`/companies/${job.companyId}/sources`, { token: accessToken }).catch(() => []),
       ])
       setProfile(mapProfile(profileResponse, { ...demoProfile, name: companyName, domain: companyDomain }, sourcesResponse))
+      upsertRecentSearch({ name: companyName, domain: companyDomain, sector: profileResponse.sector || 'Company profile', status: 'Hoàn tất', time: `Tác vụ #${job.jobId}`, tone: 'violet' })
       notify('Đã hoàn tất hồ sơ doanh nghiệp')
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
@@ -266,6 +297,7 @@ function App() {
       } else if (error.name === 'TypeError' || error.name === 'AbortError') {
         await wait(850)
         setProfile({ ...demoProfile, name: companyName, domain: companyDomain, updated: 'bản demo' })
+        upsertRecentSearch({ name: companyName, domain: companyDomain, sector: 'Company profile', status: 'Hoàn tất', time: 'Bản demo', tone: 'violet' })
         notify('Backend chưa chạy — đang hiển thị dữ liệu mẫu để xem trước giao diện')
       } else {
         notify(error.message || 'Tra cứu thất bại, vui lòng thử lại')

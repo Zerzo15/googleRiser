@@ -1,11 +1,16 @@
 package com.example.app.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.example.app.entity.Company;
 import com.example.app.entity.SearchJob;
 import com.example.app.entity.SearchJobStatus;
 import com.example.app.entity.User;
+import com.example.app.dto.CompanyDto;
+import com.example.app.dto.SearchJobDto;
+import com.example.app.dto.UserDto;
 import com.example.app.repo.CompanyRepo;
 import com.example.app.repo.SearchJobRepo;
 import com.example.app.repo.UserRepo;
@@ -50,5 +55,16 @@ public class SearchJobService {
             
         job.setStatus(status);
         searchJobRepo.save(job);
+    }
+
+    public List<SearchJobDto> getHistory(String username) {
+        return searchJobRepo.findByRequestedByUsernameOrderByIdDesc(username).stream()
+            .map(job -> new SearchJobDto(
+                job.getId(),
+                new CompanyDto(job.getCompany().getId(), job.getCompany().getName(), job.getCompany().getDomain()),
+                new UserDto(job.getRequestedBy().getId(), job.getRequestedBy().getUsername()),
+                job.getStatus().name()
+            ))
+            .toList();
     }
 }
