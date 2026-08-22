@@ -69,6 +69,11 @@ public class CompanyController {
         }
     }
 
+    @GetMapping("/history")
+    public ResponseEntity<?> getHistory(Principal principal) {
+        return ResponseEntity.ok(searchJobService.getHistory(principal.getName()));
+    }
+
     // Step 3: Once the job is COMPLETE, frontend fetches the finalized report
     @GetMapping("/{companyId}/profile")
     public ResponseEntity<?> getCompanyProfile(@PathVariable Long companyId) {
