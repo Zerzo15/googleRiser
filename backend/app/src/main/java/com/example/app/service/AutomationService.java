@@ -1,11 +1,18 @@
 package com.example.app.service;
 
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
-import com.example.app.entity.*;
-import com.example.app.repo.*;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
+import com.example.app.dto.AiCompanyAnalysisDto;
+import com.example.app.entity.Company;
+import com.example.app.entity.CompanyProfile;
+import com.example.app.entity.DataSource;
+import com.example.app.entity.SearchJobStatus;
+import com.example.app.repo.CompanyProfileRepo;
+import com.example.app.repo.CompanyRepo;
+import com.example.app.repo.DataSourceRepo;
 
 @Service
 public class AutomationService {
@@ -14,48 +21,61 @@ public class AutomationService {
     private final CompanyRepo companyRepo;
     private final CompanyProfileRepo companyProfileRepo;
     private final DataSourceRepo dataSourceRepo;
+    private final CompanyIntelligenceService intelligenceService;
 
-    public AutomationService(SearchJobService searchJobService, 
-                            CompanyRepo companyRepo, 
-                            CompanyProfileRepo companyProfileRepo, 
-                            DataSourceRepo dataSourceRepo) {
+    public AutomationService(
+            SearchJobService searchJobService,
+            CompanyRepo companyRepo,
+            CompanyProfileRepo companyProfileRepo,
+            DataSourceRepo dataSourceRepo,
+            CompanyIntelligenceService intelligenceService) {
         this.searchJobService = searchJobService;
         this.companyRepo = companyRepo;
         this.companyProfileRepo = companyProfileRepo;
         this.dataSourceRepo = dataSourceRepo;
+        this.intelligenceService = intelligenceService;
     }
 
     @Async
     public void processJob(Long jobId, Long companyId) {
         try {
-            // 1. Mark as processing
             searchJobService.updateJobStatus(jobId, SearchJobStatus.PROCESSING);
-            
+
             Company company = companyRepo.findById(companyId)
-                .orElseThrow(() -> new Exception("Company not found"));
+                .orElseThrow(() -> new IllegalArgumentException("Company not found"));
 
-            // 2. Simulate data gathering (Replace with actual web scraper/API later)
-            Thread.sleep(5000); 
+            AiCompanyAnalysisDto analysis = intelligenceService.analyzeCompany(
+                company.getName(),
+                company.getDomain()
+            );
 
-            // 3. Synthesize and save the profile
-            CompanyProfile profile = new CompanyProfile();
+            if (analysis.taxId() != null && !analysis.taxId().isBlank()) {
+                company.setTaxId(analysis.taxId());
+                companyRepo.save(company);
+            }
+
+            CompanyProfile profile = companyProfileRepo.findByCompanyId(companyId)
+                .orElseGet(CompanyProfile::new);
+
             profile.setCompany(company);
-            profile.setSector("Technology"); 
-            profile.setScale("10-50 Employees"); 
-            profile.setProducts("Software Automation");
-            profile.setMarket("Vietnam");
+            profile.setSector(analysis.sector());
+            profile.setScale(analysis.scale());
+            profile.setProducts(analysis.products());
+            profile.setMarket(analysis.market());
             profile.setLastUpdated(LocalDateTime.now());
-            companyProfileRepo.save(profile);
+            CompanyProfile savedProfile = companyProfileRepo.save(profile);
 
-            // 4. Save the data source references
-            DataSource source = new DataSource();
-            source.setCompanyProfile(profile);
-            source.setPlatformName("LinkedIn");
-            source.setUrl("https://linkedin.com/company/" + company.getDomain());
-            source.setRawData("{\"status\": \"success\"}");
-            dataSourceRepo.save(source);
+            if (analysis.sources() != null) {
+                for (var sourceItem : analysis.sources()) {
+                    DataSource source = new DataSource();
+                    source.setCompanyProfile(savedProfile);
+                    source.setPlatformName(sourceItem.platformName());
+                    source.setUrl(sourceItem.url());
+                    source.setRawData(sourceItem.snippet());
+                    dataSourceRepo.save(source);
+                }
+            }
 
-            // 5. Mark as complete
             searchJobService.updateJobStatus(jobId, SearchJobStatus.COMPLETE);
 
         } catch (Exception e) {
