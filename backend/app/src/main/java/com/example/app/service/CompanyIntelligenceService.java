@@ -18,10 +18,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class CompanyIntelligenceService {
 
     @Value("${gemini.api.key:}")
-    private String apiKey;
+    private String geminiApiKey;
 
     @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent}")
-    private String apiUrl;
+    private String geminiApiUrl;
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -35,14 +35,16 @@ public class CompanyIntelligenceService {
     }
 
     public AiCompanyAnalysisDto analyzeCompany(String name, String domain) throws Exception {
-        if (apiKey == null || apiKey.isBlank()) {
+        if (geminiApiKey == null || geminiApiKey.isBlank()) {
             throw new IllegalStateException("GEMINI_API_KEY is not configured");
         }
 
         String prompt = """
-            You are a corporate intelligence analyst. Research the following company:
+            You are a corporate intelligence analyst. Use your Google Search tool to research the following company:
             - Name: %s
             - Domain: %s
+
+            STRICT RULE: Do not invent information. If an attribute cannot be found via search, output "Chưa cập nhật".
 
             Extract and return ONLY a valid JSON object matching this schema without Markdown formatting:
             {
@@ -54,28 +56,32 @@ public class CompanyIntelligenceService {
               "sources": [
                 {
                   "platformName": "Website / LinkedIn / Cổng ĐKKD",
-                  "url": "URL or domain source",
+                  "url": "URL or domain source extracted from the search results",
                   "snippet": "Brief note on source validity"
                 }
               ]
             }
             """.formatted(name, domain);
 
+        // Injecting the googleSearch tool to enable native internet access
         Map<String, Object> requestBodyMap = java.util.Map.of(
             "contents", java.util.List.of(
                 java.util.Map.of("parts", java.util.List.of(
                     java.util.Map.of("text", prompt)
                 ))
             ),
+            "tools", java.util.List.of(
+                java.util.Map.of("googleSearch", java.util.Map.of())
+            ),
             "generationConfig", java.util.Map.of(
                 "responseMimeType", "application/json"
             )
         );
 
-String requestBody = objectMapper.writeValueAsString(requestBodyMap);
+        String requestBody = objectMapper.writeValueAsString(requestBodyMap);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(apiUrl + "?key=" + apiKey))
+                .uri(URI.create(geminiApiUrl + "?key=" + geminiApiKey))
                 .header("Content-Type", "application/json")
                 .timeout(Duration.ofSeconds(25))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
