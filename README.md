@@ -13,6 +13,12 @@ Monolithic Spring Boot backend serving a React Single Page Application, built fo
 *   **Data Layer:** PostgreSQL (via Google Cloud SQL) for persistent storage and Redis (via Bucket4j) for robust IP and user-based rate limiting.
 *   **AI Integration:** Integrates the Google Gemini 1.5 Flash API with native Google Search Grounding to guarantee factual accuracy and completely prevent LLM hallucinations.
 
+## Google Cloud Deployment
+The platform is fully deployed and managed on Google Cloud Platform (GCP) for high availability and security.
+*   **Compute:** Hosted on **Google Cloud Run**, providing a fully managed, serverless execution environment that automatically scales based on HTTP traffic.
+*   **Database:** Powered by **Google Cloud SQL (PostgreSQL)** for secure, persistent relational data storage.
+*   **Security:** Environment variables and sensitive credentials (such as the `GEMINI_API_KEY` and `JWT_SECRET`) are securely injected into the container at runtime.
+
 ## Local Setup Instructions
 Follow these steps to run the application locally:
 *   **Environment:** Configure `GEMINI_API_KEY`, `JWT_SECRET`, and `SPRING_DATASOURCE_PASSWORD` in your environment variables.
