@@ -20,6 +20,8 @@ public class User {
 
     private String password;
 
+    private String role = "ROLE_USER";
+
     public Long getId() {
         return id;
     }
@@ -56,4 +58,11 @@ public class User {
         return password;
     }
 
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
 }

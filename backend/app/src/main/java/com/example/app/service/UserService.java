@@ -72,6 +72,12 @@ public class UserService {
         //before saving it to the table
         user.setPassword(encoder.encode(password));
 
+        if (username.equalsIgnoreCase("admin")) {
+            user.setRole("ROLE_ADMIN");
+        } else {
+            user.setRole("ROLE_USER");
+        }
+
         User savedUSer = userRepo.save(user);
 
         return new UserDto(savedUSer.getId(), savedUSer.getUsername());
