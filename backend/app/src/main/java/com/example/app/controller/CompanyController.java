@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.app.dto.CompanyDto;
 import com.example.app.entity.Company;
-import com.example.app.entity.CompanyProfile;
 import com.example.app.entity.SearchJob;
+import com.example.app.entity.CompanyProfile;
 import com.example.app.service.AutomationService;
 import com.example.app.service.CompanyService;
 import com.example.app.service.SearchJobService;
@@ -33,40 +33,24 @@ public class CompanyController {
         this.automationService = automationService;
     }
 
-    // Step 1: Frontend sends company details. We save it, create a job, and start the background task.
     @PostMapping("/research")
-    public ResponseEntity<?> startResearch(@RequestBody Company company, Principal principal) {
-        try {
-            // 1. Register the company
-            CompanyDto savedCompany = companyService.registerCompany(company, principal.getName());
-            
-            // 2. Initialize the PENDING job
-            SearchJob job = searchJobService.initializeJob(savedCompany.id(), principal.getName());
-            
-            // 3. Fire the async background scraping task (this runs on a separate thread)
-            automationService.processJob(job.getId(), savedCompany.id());
-            
-            // 4. Return the Job ID to the frontend so it can start polling
-            return ResponseEntity.ok(Map.of(
-                "jobId", job.getId(),
-                "companyId", savedCompany.id(),
-                "status", job.getStatus().name()
-            ));
-            
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<?> startResearch(@RequestBody Company company, Principal principal) throws Exception {
+        CompanyDto savedCompany = companyService.registerCompany(company, principal.getName());
+        SearchJob job = searchJobService.initializeJob(savedCompany.id(), principal.getName());
+        
+        automationService.processJob(job.getId(), savedCompany.id());
+        
+        return ResponseEntity.ok(Map.of(
+            "jobId", job.getId(),
+            "companyId", savedCompany.id(),
+            "status", job.getStatus().name()
+        ));
     }
 
-    // Step 2: Frontend polls this endpoint every few seconds to check if status is COMPLETE
     @GetMapping("/jobs/{jobId}/status")
-    public ResponseEntity<?> getJobStatus(@PathVariable Long jobId) {
-        try {
-            String status = searchJobService.getJobStatus(jobId);
-            return ResponseEntity.ok(Map.of("status", status));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<?> getJobStatus(@PathVariable Long jobId) throws Exception {
+        String status = searchJobService.getJobStatus(jobId);
+        return ResponseEntity.ok(Map.of("status", status));
     }
 
     @GetMapping("/history")
@@ -74,23 +58,14 @@ public class CompanyController {
         return ResponseEntity.ok(searchJobService.getHistory(principal.getName()));
     }
 
-    // Step 3: Once the job is COMPLETE, frontend fetches the finalized report
     @GetMapping("/{companyId}/profile")
-    public ResponseEntity<?> getCompanyProfile(@PathVariable Long companyId) {
-        try {
-            CompanyProfile profile = companyService.getProfile(companyId);
-            return ResponseEntity.ok(profile);
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<?> getCompanyProfile(@PathVariable Long companyId) throws Exception {
+        CompanyProfile profile = companyService.getProfile(companyId);
+        return ResponseEntity.ok(profile);
     }
 
     @GetMapping("/{companyId}/sources")
-    public ResponseEntity<?> getCompanySources(@PathVariable Long companyId) {
-        try {
-            return ResponseEntity.ok(companyService.getSources(companyId));
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<?> getCompanySources(@PathVariable Long companyId) throws Exception {
+        return ResponseEntity.ok(companyService.getSources(companyId));
     }
 }
