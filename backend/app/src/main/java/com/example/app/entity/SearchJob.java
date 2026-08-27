@@ -1,6 +1,8 @@
 package com.example.app.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "search_jobs")
@@ -17,7 +19,10 @@ public class SearchJob {
     @JoinColumn(name = "user_id")
     private User requestedBy; // Links directly to your existing User.java
 
-    @Enumerated(EnumType.STRING)
+    // Keep the existing PostgreSQL schema compatible: status is stored as a
+    // small ordinal with a 0..3 check constraint in the current database.
+    @Enumerated(EnumType.ORDINAL)
+    @JdbcTypeCode(SqlTypes.SMALLINT)
     private SearchJobStatus status;
 
     public Long getId() { return id; }
