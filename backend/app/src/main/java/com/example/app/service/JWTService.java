@@ -17,8 +17,7 @@ import java.util.function.Function;
 @Service
 public class JWTService {
 
-    //fall back value if the key in application property is broken
-    @Value("${jwt.secret:ZzBPZ2xlUmkkZXIyMDA2MjAyNnxVJHVNL1NpMG53RXNTdm4=}")
+    @Value("${jwt.secret}")
     private String secretkey;
 
     public String generateToken(String username) {

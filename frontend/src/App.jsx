@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+// Keep local and ngrok previews same-origin; Vite proxies /api to Spring Boot.
+// Production can override this with VITE_API_URL when frontend/backend differ.
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 const demoProfile = {
   name: "Nova Robotics",

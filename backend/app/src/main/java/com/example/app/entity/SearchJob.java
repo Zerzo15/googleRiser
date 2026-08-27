@@ -17,7 +17,7 @@ public class SearchJob {
     @JoinColumn(name = "user_id")
     private User requestedBy; // Links directly to your existing User.java
 
-    @Enumerated
+    @Enumerated(EnumType.STRING)
     private SearchJobStatus status;
 
     public Long getId() { return id; }
