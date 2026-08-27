@@ -216,7 +216,7 @@ tbody tr:hover { background: #f5f8f8; }
 .help-sparkle { color: var(--navy); background: #dce9ed; }
 .help-card button { color: var(--navy); }
 .source-count { background: #eef2f4; }
-.modal-backdrop { background: rgba(20, 35, 48, .48); }
+.modal-backdrop { z-index: 20; background: rgba(20, 35, 48, .48); }
 .auth-kicker { color: var(--navy); }
 
 .sidebar-backdrop { display: none; }
