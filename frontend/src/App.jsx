@@ -327,6 +327,8 @@ function App() {
   const [isResearching, setIsResearching] = useState(false);
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("Tất cả");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState("login");
   const [authLoading, setAuthLoading] = useState(false);
@@ -352,6 +354,13 @@ function App() {
     return recentSearches;
   }, [filter, recentSearches]);
 
+  const completedCount = recentSearches.filter(
+    (item) => item.status === "Hoàn tất",
+  ).length;
+  const processingCount = recentSearches.filter(
+    (item) => item.status === "Đang xử lý",
+  ).length;
+
   useEffect(() => {
     if (!accessToken) return;
     apiRequest("/companies/history", { token: accessToken })
@@ -366,6 +375,7 @@ function App() {
 
   const navigateTo = (destination) => {
     setActiveNav(destination);
+    setMobileNavOpen(false);
     const targetId = { profiles: "recent-section", sources: "sources-section" }[
       destination
     ];
@@ -375,6 +385,12 @@ function App() {
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     if (destination === "overview")
       window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const openPanel = (panel) => {
+    setPanelOpen(panel);
+    setMobileNavOpen(false);
+    if (panel === "settings") setActiveNav("settings");
   };
 
   const upsertRecentSearch = (entry) => {
@@ -574,7 +590,14 @@ function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {mobileNavOpen && (
+        <button
+          className="sidebar-backdrop"
+          aria-label="Đóng menu điều hướng"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+      <aside className={`sidebar ${mobileNavOpen ? "is-open" : ""}`}>
         <div className="brand">
           <div className="brand-mark">
             <span></span>
@@ -606,18 +629,15 @@ function App() {
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-              {item.count && <em>{item.count}</em>}
+              {item.count && (
+                <em>{item.id === "profiles" ? recentSearches.length : item.count}</em>
+              )}
             </button>
           ))}
           <p className="nav-label second">Quản trị</p>
           <button
             className={`nav-item ${activeNav === "settings" ? "active" : ""}`}
-            onClick={() => {
-              setActiveNav("settings");
-              notify(
-                "Cài đặt workspace sẽ được mở trong phiên bản quản trị tiếp theo",
-              );
-            }}
+            onClick={() => openPanel("settings")}
           >
             <Icon name="settings" />
             <span>Cài đặt</span>
@@ -631,7 +651,7 @@ function App() {
             </div>
             <strong>Cần hỗ trợ?</strong>
             <p>Khám phá cách Riser giúp bạn chuẩn bị cho buổi gặp tiếp theo.</p>
-            <button onClick={() => notify("Đã mở hướng dẫn sử dụng Riser")}>
+            <button onClick={() => openPanel("help")}>
               <span>Xem hướng dẫn</span>
               <Icon name="arrow" size={14} />
             </button>
@@ -654,8 +674,13 @@ function App() {
 
       <main className="main-content">
         <header className="topbar">
-          <button className="mobile-menu" aria-label="Mở menu">
-            <Icon name="menu" />
+          <button
+            className="mobile-menu"
+            aria-label={mobileNavOpen ? "Đóng menu" : "Mở menu"}
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen((open) => !open)}
+          >
+            <Icon name={mobileNavOpen ? "x" : "menu"} />
           </button>
           <div className="breadcrumbs">
             <span>Workspace</span>
@@ -692,15 +717,15 @@ function App() {
           <section className="page-heading">
             <div>
               <p className="eyebrow">
-                <span className="eyebrow-dot"></span> Research workspace{" "}
-                <span className="eyebrow-line"></span> 22.08.2026
+                <span className="eyebrow-dot"></span> Hồ sơ doanh nghiệp{" "}
+                <span className="eyebrow-line"></span> Cập nhật 22.08.2026
               </p>
               <h1>
-                Hiểu doanh nghiệp <span>trong vài giây.</span>
+                Tra cứu và <span>đối soát doanh nghiệp.</span>
               </h1>
               <p className="heading-copy">
-                Tự động tổng hợp thông tin công khai thành một hồ sơ chuẩn hóa,
-                sẵn sàng cho mọi buổi làm việc.
+                Tập hợp dữ liệu công khai, kiểm tra nguồn và lưu lại bức tranh
+                doanh nghiệp trong một workspace.
               </p>
             </div>
             <div className="heading-actions">
@@ -724,11 +749,11 @@ function App() {
                 <div>
                   <div className="section-kicker">
                     <span className="kicker-icon">
-                      <Icon name="sparkle" size={14} />
+                      <Icon name="search" size={14} />
                     </span>{" "}
-                    Tạo hồ sơ mới
+                    Tra cứu doanh nghiệp
                   </div>
-                  <h2>Doanh nghiệp bạn muốn tìm hiểu?</h2>
+                  <h2>Bắt đầu một lần tra cứu</h2>
                 </div>
                 <span className="step-label">
                   01 <i>/</i> 02
@@ -763,8 +788,8 @@ function App() {
               </div>
               <div className="research-footer">
                 <p>
-                  <span className="secure-dot"></span> Tra cứu từ Google,
-                  LinkedIn, website và nguồn đăng ký công khai
+                  <span className="secure-dot"></span> Kết quả đi kèm nguồn
+                  và thời điểm kiểm tra
                 </p>
                 <button
                   className="button research-button"
@@ -786,20 +811,20 @@ function App() {
             <aside className="today-card">
               <div className="today-pattern"></div>
               <div className="today-top">
-                <span className="section-kicker light">Hôm nay</span>
+                <span className="section-kicker light">Workspace</span>
                 <Icon name="arrow" size={17} />
               </div>
-              <strong>24</strong>
+              <strong>{recentSearches.length}</strong>
               <h3>
-                hồ sơ doanh nghiệp
+                hồ sơ gần đây
                 <br />
-                đã được tạo
+                trong workspace
               </h3>
               <div className="today-footer">
                 <span>
-                  <i className="trend-up">↗</i> 18.4%
+                  <i className="trend-up">●</i> {completedCount} hoàn tất
                 </span>
-                <small>so với tuần trước</small>
+                <small>{processingCount} đang xử lý</small>
               </div>
             </aside>
           </section>
@@ -811,9 +836,9 @@ function App() {
               </div>
               <div>
                 <span>Tổng hồ sơ</span>
-                <strong>128</strong>
+                <strong>{recentSearches.length}</strong>
               </div>
-              <em className="positive">+12.5%</em>
+              <em className="neutral">đang theo dõi</em>
             </div>
             <div className="metric-card">
               <div className="metric-icon green">
@@ -821,9 +846,9 @@ function App() {
               </div>
               <div>
                 <span>Đã hoàn tất</span>
-                <strong>116</strong>
+                <strong>{completedCount}</strong>
               </div>
-              <em className="positive">90.6%</em>
+              <em className="positive">đã đối soát</em>
             </div>
             <div className="metric-card">
               <div className="metric-icon orange">
@@ -831,9 +856,9 @@ function App() {
               </div>
               <div>
                 <span>Đang xử lý</span>
-                <strong>08</strong>
+                <strong>{processingCount}</strong>
               </div>
-              <em className="neutral">− 2 hôm nay</em>
+              <em className="neutral">cần xem lại</em>
             </div>
             <div className="metric-card">
               <div className="metric-icon blue">
@@ -841,9 +866,9 @@ function App() {
               </div>
               <div>
                 <span>Nguồn đã kết nối</span>
-                <strong>04</strong>
+                <strong>{profile.sources.length}</strong>
               </div>
-              <em className="neutral">Ổn định</em>
+              <em className="neutral">xác minh được</em>
             </div>
           </section>
 
@@ -906,7 +931,7 @@ function App() {
                 <span>
                   <Icon name="clock" size={14} /> Cập nhật {profile.updated}
                 </span>
-                <button onClick={() => notify("Đang mở trang chi tiết hồ sơ")}>
+                <button onClick={() => openPanel("detail")}>
                   Xem chi tiết <Icon name="arrow" size={14} />
                 </button>
               </div>
@@ -949,8 +974,8 @@ function App() {
                   <span style={{ width: `${profile.completeness}%` }}></span>
                 </div>
                 <p>
-                  <Icon name="sparkle" size={13} /> Có thể bổ sung thêm thông
-                  tin người liên hệ
+                  <Icon name="check" size={13} /> Nguồn hiện có thể kiểm tra
+                  lại từ trang chi tiết
                 </p>
               </div>
             </div>
@@ -1050,6 +1075,192 @@ function App() {
           </footer>
         </div>
       </main>
+      {panelOpen === "help" && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setPanelOpen(null)
+          }
+        >
+          <section
+            className="workspace-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="help-title"
+          >
+            <button
+              className="modal-close"
+              aria-label="Đóng"
+              onClick={() => setPanelOpen(null)}
+            >
+              <Icon name="x" size={18} />
+            </button>
+            <p className="auth-kicker">Hướng dẫn workspace</p>
+            <h2 id="help-title">Một lần tra cứu, một hồ sơ có thể kiểm chứng.</h2>
+            <p className="auth-copy">
+              Riser gom các dấu vết công khai thành một bản ghi ngắn gọn để đội
+              ngũ có thể đọc nhanh và quay lại kiểm tra khi cần.
+            </p>
+            <div className="guide-list">
+              <div>
+                <b>01</b>
+                <span>
+                  <strong>Nhập tên hoặc tên miền</strong>
+                  Bắt đầu bằng thông tin bạn đang có về doanh nghiệp.
+                </span>
+              </div>
+              <div>
+                <b>02</b>
+                <span>
+                  <strong>Đọc hồ sơ và nguồn</strong>
+                  Mỗi kết quả được đặt cạnh nguồn tham chiếu tương ứng.
+                </span>
+              </div>
+              <div>
+                <b>03</b>
+                <span>
+                  <strong>Lưu hoặc xuất bản ghi</strong>
+                  Dùng lịch sử tra cứu để tiếp tục công việc ở lần sau.
+                </span>
+              </div>
+            </div>
+            <button
+              className="button secondary modal-action"
+              type="button"
+              onClick={() => setPanelOpen(null)}
+            >
+              Đã hiểu
+            </button>
+          </section>
+        </div>
+      )}
+      {panelOpen === "settings" && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setPanelOpen(null)
+          }
+        >
+          <section
+            className="workspace-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-title"
+          >
+            <button
+              className="modal-close"
+              aria-label="Đóng"
+              onClick={() => setPanelOpen(null)}
+            >
+              <Icon name="x" size={18} />
+            </button>
+            <p className="auth-kicker">Workspace settings</p>
+            <h2 id="settings-title">Cài đặt workspace</h2>
+            <p className="auth-copy">
+              Kiểm soát cách Riser cập nhật dữ liệu và trình bày kết quả cho
+              nhóm của bạn.
+            </p>
+            <div className="settings-list">
+              <label className="setting-row">
+                <span>
+                  <strong>Tự động làm mới dữ liệu</strong>
+                  <small>Kiểm tra lại nguồn khi mở hồ sơ đã lưu.</small>
+                </span>
+                <input type="checkbox" defaultChecked />
+              </label>
+              <label className="setting-row">
+                <span>
+                  <strong>Hiển thị nguồn trong hồ sơ</strong>
+                  <small>Giữ liên kết tham chiếu cạnh từng thông tin.</small>
+                </span>
+                <input type="checkbox" defaultChecked />
+              </label>
+              <label className="setting-row">
+                <span>
+                  <strong>Thông báo khi hoàn tất</strong>
+                  <small>Nhận tín hiệu khi một lần tra cứu đã xử lý xong.</small>
+                </span>
+                <input type="checkbox" />
+              </label>
+            </div>
+            <button
+              className="button primary modal-action"
+              type="button"
+              onClick={() => {
+                setPanelOpen(null);
+                notify("Đã lưu cài đặt workspace");
+              }}
+            >
+              Lưu cài đặt
+            </button>
+          </section>
+        </div>
+      )}
+      {panelOpen === "detail" && (
+        <div
+          className="modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) =>
+            event.target === event.currentTarget && setPanelOpen(null)
+          }
+        >
+          <section
+            className="workspace-modal detail-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="detail-title"
+          >
+            <button
+              className="modal-close"
+              aria-label="Đóng"
+              onClick={() => setPanelOpen(null)}
+            >
+              <Icon name="x" size={18} />
+            </button>
+            <p className="auth-kicker">Bản ghi doanh nghiệp</p>
+            <h2 id="detail-title">{profile.name}</h2>
+            <p className="modal-subtitle">
+              {profile.domain} · Cập nhật {profile.updated}
+            </p>
+            <div className="detail-grid">
+              <div>
+                <span>Mã số thuế</span>
+                <strong>{profile.taxId}</strong>
+              </div>
+              <div>
+                <span>Trụ sở</span>
+                <strong>{profile.market}</strong>
+              </div>
+              <div>
+                <span>Quy mô</span>
+                <strong>{profile.scale}</strong>
+              </div>
+              <div>
+                <span>Lĩnh vực</span>
+                <strong>{profile.sector}</strong>
+              </div>
+            </div>
+            <div className="detail-sources">
+              <h3>Nguồn đã kiểm tra</h3>
+              {profile.sources.map((source) => (
+                <div key={source.name}>
+                  <span>{source.name}</span>
+                  <small>{source.detail}</small>
+                </div>
+              ))}
+            </div>
+            <button
+              className="button secondary modal-action"
+              type="button"
+              onClick={() => setPanelOpen(null)}
+            >
+              Đóng
+            </button>
+          </section>
+        </div>
+      )}
       {toast && (
         <div className="toast">
           <span className="toast-check">
