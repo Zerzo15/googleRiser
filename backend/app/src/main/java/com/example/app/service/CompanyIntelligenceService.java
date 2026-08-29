@@ -98,6 +98,7 @@ public class CompanyIntelligenceService {
         if (response.statusCode() != 200) {
             // Keep provider response details out of the API response. The body
             // may contain internal diagnostics or data echoed from a prompt.
+            System.err.println("DeepSeek API Error: " + response.body());
             throw new RuntimeException("AI provider request failed with HTTP " + response.statusCode());
         }
 
