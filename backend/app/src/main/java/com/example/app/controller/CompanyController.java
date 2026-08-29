@@ -48,8 +48,8 @@ public class CompanyController {
     }
 
     @GetMapping("/jobs/{jobId}/status")
-    public ResponseEntity<?> getJobStatus(@PathVariable Long jobId) throws Exception {
-        String status = searchJobService.getJobStatus(jobId);
+    public ResponseEntity<?> getJobStatus(@PathVariable Long jobId, Principal principal) throws Exception {
+        String status = searchJobService.getJobStatus(jobId, principal.getName());
         return ResponseEntity.ok(Map.of("status", status));
     }
 
@@ -59,13 +59,15 @@ public class CompanyController {
     }
 
     @GetMapping("/{companyId}/profile")
-    public ResponseEntity<?> getCompanyProfile(@PathVariable Long companyId) throws Exception {
+    public ResponseEntity<?> getCompanyProfile(@PathVariable Long companyId, Principal principal) throws Exception {
+        searchJobService.assertCompanyAccess(companyId, principal.getName());
         CompanyProfile profile = companyService.getProfile(companyId);
         return ResponseEntity.ok(profile);
     }
 
     @GetMapping("/{companyId}/sources")
-    public ResponseEntity<?> getCompanySources(@PathVariable Long companyId) throws Exception {
+    public ResponseEntity<?> getCompanySources(@PathVariable Long companyId, Principal principal) throws Exception {
+        searchJobService.assertCompanyAccess(companyId, principal.getName());
         return ResponseEntity.ok(companyService.getSources(companyId));
     }
 }

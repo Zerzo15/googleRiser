@@ -17,6 +17,9 @@ import com.example.app.repo.DataSourceRepo;
 
 @Service
 public class CompanyService {
+    private static final int MAX_COMPANY_NAME_LENGTH = 200;
+    private static final int MAX_DOMAIN_LENGTH = 253;
+
     private final CompanyProfileRepo companyProfileRepo;
     private final CompanyRepo companyRepo;
     private final DataSourceRepo dataSourceRepo;
@@ -33,7 +36,13 @@ public class CompanyService {
         String safeDomain = normalizeDomain(company.getDomain());
 
         if (safeName == null || safeName.trim().isEmpty()) {
-            throw new Exception("Error: Enter Company Name");
+            throw new IllegalArgumentException("Enter Company Name");
+        }
+        if (safeName.length() > MAX_COMPANY_NAME_LENGTH) {
+            throw new IllegalArgumentException("Company name is too long");
+        }
+        if (safeDomain != null && !isValidDomain(safeDomain)) {
+            throw new IllegalArgumentException("Invalid company website");
         }
 
         Optional<Company> existingCompany = companyRepo.findByNameIgnoreCase(safeName);
@@ -55,7 +64,7 @@ public class CompanyService {
                     existingDomain
                 );
             }
-            throw new Exception("Error: Company Already Registered");
+            throw new IllegalArgumentException("Company Already Registered");
         }
 
         company.setName(safeName);
@@ -95,6 +104,14 @@ public class CompanyService {
                 .split("[/?#]", 2)[0]
                 .toLowerCase(Locale.ROOT)
                 .replaceFirst("^www\\.", "");
+    }
+
+    private static boolean isValidDomain(String domain) {
+        if (domain.length() > MAX_DOMAIN_LENGTH) {
+            return false;
+        }
+        String label = "[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?";
+        return domain.matches(label + "(?:\\." + label + ")+" );
     }
 
     public CompanyProfile getProfile(Long companyId) throws Exception {
