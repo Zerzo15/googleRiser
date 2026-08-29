@@ -91,7 +91,7 @@ public class CompanyIntelligenceService {
                 .header("Authorization", "Bearer " + deepseekApiKey)
                 .timeout(Duration.ofSeconds(45))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
+                .build(); 
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
