@@ -208,13 +208,19 @@ function CompanyMark({ name, tone = "violet", small = false }) {
 
 function getDomain(value) {
   return (
-    value
+    (value || "")
       .toLowerCase()
-      .replace(/https?:\/\//, "")
+      .replace(/^[a-z][a-z0-9+.-]*:\/\//, "")
       .replace(/www\./, "")
       .split("/")[0]
+      .split(/[?#]/)[0]
       .replace(/[^a-z0-9.-]/g, "") || "company.vn"
   );
+}
+
+function getWebsiteUrl(value) {
+  const normalized = getDomain(value);
+  return normalized ? `https://${normalized}` : "#";
 }
 
 function getInitials(value) {
@@ -483,7 +489,7 @@ function App() {
     }
 
     const companyName = query.trim();
-    const companyDomain = domain.trim() || getDomain(companyName);
+    const companyDomain = getDomain(domain.trim() || companyName);
     setIsResearching(true);
     setDomain(companyDomain);
 
@@ -896,7 +902,7 @@ function App() {
                 <div>
                   <h3>{profile.name}</h3>
                   <a
-                    href={`https://${profile.domain}`}
+                    href={getWebsiteUrl(profile.domain)}
                     target="_blank"
                     rel="noreferrer"
                   >
