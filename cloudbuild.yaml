@@ -1,6 +1,6 @@
 steps:
-  - name: "gcr.io/cloud-builders/mvn"
-    args: ["-f", "backend/app/pom.xml", "clean", "package", "-DskipTests"]
+  - name: "gcr.io/cloud-builders/gradle"
+    args: ["build"]
 
 serviceAccount: "projects/project-25c8d146-3e11-498c-a31/serviceAccounts/160316735954-compute@developer.gserviceaccount.com"
 
