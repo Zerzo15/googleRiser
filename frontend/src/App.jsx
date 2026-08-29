@@ -1,9 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-// Keep local and ngrok previews same-origin; Vite proxies /api to Spring Boot.
-// Production can override this with VITE_API_URL when frontend/backend differ.
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+// Keep local previews same-origin; Vite proxies /api to Spring Boot.
+// A deployed static frontend has no Vite proxy, so use the live backend unless
+// the hosting environment provides an explicit VITE_API_URL (origin or /api).
+const configuredApiBase = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, "");
+const configuredApiPath = configuredApiBase
+  ? configuredApiBase.endsWith("/api")
+    ? configuredApiBase
+    : `${configuredApiBase}/api`
+  : "";
+const API_BASE =
+  configuredApiPath ||
+  (import.meta.env.DEV
+    ? "/api"
+    : "https://googleriser-backend-c4fa45iska-as.a.run.app/api");
 
 const demoProfile = {
   name: "Nova Robotics",
