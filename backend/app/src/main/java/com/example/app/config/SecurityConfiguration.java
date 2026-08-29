@@ -15,7 +15,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.LogoutFilter;
 
 import com.example.app.filter.JWTFilter;
 import com.example.app.filter.RateLimitFilter;
@@ -51,17 +50,12 @@ public class SecurityConfiguration {
             //public
             .requestMatchers("/api/user/register", "/api/user/login").permitAll()
 
-            //admin 
-            //id:\\d+ this is the generic way to say, id only accept number
-            .requestMatchers("/api/user/{id:\\d+}").hasRole("ADMIN")
-
             //user
             .anyRequest().authenticated()
         );
 
-        httpSecurity.addFilterBefore(rateLimitFilter, LogoutFilter.class);
-
         httpSecurity.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        httpSecurity.addFilterAfter(rateLimitFilter, JWTFilter.class);
 
         return httpSecurity.build();
     }

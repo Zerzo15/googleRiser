@@ -2,6 +2,7 @@ package com.example.app.service;
 
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.example.app.entity.Company;
@@ -42,11 +43,22 @@ public class SearchJobService {
         return searchJobRepo.save(job);
     }
 
-    public String getJobStatus(Long jobId) throws Exception {
+    public String getJobStatus(Long jobId, String username) throws Exception {
         SearchJob job = searchJobRepo.findById(jobId)
             .orElseThrow(() -> new Exception("Job not found"));
+
+        if (job.getRequestedBy() == null
+                || !username.equals(job.getRequestedBy().getUsername())) {
+            throw new AccessDeniedException("You cannot access this job");
+        }
             
         return job.getStatus().name();
+    }
+
+    public void assertCompanyAccess(Long companyId, String username) {
+        if (!searchJobRepo.existsByCompany_IdAndRequestedBy_Username(companyId, username)) {
+            throw new AccessDeniedException("You cannot access this company");
+        }
     }
 
     public void updateJobStatus(Long jobId, SearchJobStatus status) throws Exception {

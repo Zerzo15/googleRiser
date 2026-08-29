@@ -31,6 +31,11 @@ public class RateLimitFilter extends OncePerRequestFilter{
         HttpServletResponse response, 
         FilterChain filterChain) throws ServletException, IOException {
 
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String rateLimitKey = getClientIp(request);
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -67,13 +72,9 @@ public class RateLimitFilter extends OncePerRequestFilter{
     
     //check for x-forward-for: get the user real ip behindn proxy   
     private String getClientIp(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-
-        if(xfHeader == null || xfHeader.isEmpty()) {
-            return request.getRemoteAddr();
-        }  
-
-        return xfHeader.split(",")[0].trim();  
+        // Do not trust X-Forwarded-For from the public request. Without a
+        // trusted proxy boundary, a caller could rotate that header to bypass
+        // the unauthenticated rate limit.
+        return request.getRemoteAddr();
     }
 }
-     

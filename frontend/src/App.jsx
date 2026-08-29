@@ -211,10 +211,10 @@ function getDomain(value) {
     (value || "")
       .toLowerCase()
       .replace(/^[a-z][a-z0-9+.-]*:\/\//, "")
-      .replace(/www\./, "")
+      .replace(/^www\./, "")
       .split("/")[0]
       .split(/[?#]/)[0]
-      .replace(/[^a-z0-9.-]/g, "") || "company.vn"
+      .replace(/[^a-z0-9.-]/g, "") || ""
   );
 }
 
@@ -489,7 +489,7 @@ function App() {
     }
 
     const companyName = query.trim();
-    const companyDomain = getDomain(domain.trim() || companyName);
+    const companyDomain = domain.trim() ? getDomain(domain) : "";
     setIsResearching(true);
     setDomain(companyDomain);
 

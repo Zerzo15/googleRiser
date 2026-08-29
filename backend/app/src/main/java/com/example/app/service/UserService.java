@@ -1,6 +1,7 @@
 package com.example.app.service;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,6 +16,9 @@ import com.example.app.repo.UserRepo;
 
 @Service
 public class UserService {
+    private static final int MAX_USERNAME_LENGTH = 64;
+    private static final int MAX_CONTACT_LENGTH = 254;
+    private static final int MAX_PASSWORD_LENGTH = 72;
 
     private final UserRepo userRepo;
     private final AuthenticationManager authenticationManager;
@@ -36,47 +40,51 @@ public class UserService {
         String password = registerRequest.password();
 
         if (username == null || username.trim().isEmpty()) {
-            throw new Exception("Error: Enter A User Name");
+            throw new IllegalArgumentException("Enter a user name");
         }
+        username = username.trim();
 
         if ( userRepo.existsByUsername(username)) {
-            throw new Exception("Error: User Name In Used");
+            throw new IllegalArgumentException("User name is already in use");
+        }
+        if (username.length() > MAX_USERNAME_LENGTH) {
+            throw new IllegalArgumentException("User name is too long");
         }
 
         user.setUsername(username);
 
         if (contact == null || contact.trim().isEmpty()) {
-            throw new Exception("Error: Provide An Email Or Phone Number");
+            throw new IllegalArgumentException("Provide an email or phone number");
         }
 
         contact = contact.trim();
+        if (contact.length() > MAX_CONTACT_LENGTH) {
+            throw new IllegalArgumentException("Contact is too long");
+        }
         if (contact.contains("@")) {
             if (userRepo.existsByEmail(contact)) {
-                throw new Exception("Error: Email In Used");
+                throw new IllegalArgumentException("Email is already in use");
             }
             user.setEmail(contact);
         } else if (contact.matches("^[0-9\\+\\-\\s]+$")) {
             if (userRepo.existsByPhone(contact)) {
-                throw new Exception("Error: Phone Number In Used");
+                throw new IllegalArgumentException("Phone number is already in use");
             }
             user.setPhone(contact);
         } else {
-            throw new Exception("Error: Invalid, Please Enter A Valid Email Or Phone Number");
+            throw new IllegalArgumentException("Invalid email or phone number");
         }
 
-        if (password == null || password.trim().isEmpty()) {
-            throw new Exception("Error: Provide A Secured Password");
+        if (password == null || password.length() < 8 || password.length() > MAX_PASSWORD_LENGTH) {
+            throw new IllegalArgumentException("Password must be 8 to 72 characters");
         }
 
         //hash the password 12 times 
         //before saving it to the table
         user.setPassword(encoder.encode(password));
 
-        if (username.equalsIgnoreCase("admin")) {
-            user.setRole("ROLE_ADMIN");
-        } else {
-            user.setRole("ROLE_USER");
-        }
+        // Public registration must never grant an administrative role.
+        user.setRole("ROLE_USER");
 
         User savedUSer = userRepo.save(user);
 
@@ -84,6 +92,13 @@ public class UserService {
     }
 
     public TokenResponse loginUser(LoginRequest loginRequest) throws Exception {
+        if (loginRequest == null
+                || loginRequest.loginId() == null
+                || loginRequest.loginId().isBlank()
+                || loginRequest.password() == null
+                || loginRequest.password().isBlank()) {
+            throw new BadCredentialsException("Invalid credentials");
+        }
         
         var authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(loginRequest.loginId(), loginRequest.password())

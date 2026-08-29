@@ -41,6 +41,7 @@ public class UserController {
     }   
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUserProfile(@PathVariable Long id) throws Exception {
         UserDto user = userService.getUserProfile(id);
         return ResponseEntity.ok(user);
