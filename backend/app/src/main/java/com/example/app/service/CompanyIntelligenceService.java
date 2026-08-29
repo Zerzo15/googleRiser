@@ -76,9 +76,9 @@ public class CompanyIntelligenceService {
                     Map.of("text", prompt)
                 ))
             ),
-            "tools", List.of(
-                Map.of("google_search", Map.of())
-            ),
+            // "tools", List.of(
+            //     Map.of("google_search", Map.of())
+            // ),
             "generationConfig", Map.of(
                 "responseMimeType", "application/json"
             )
