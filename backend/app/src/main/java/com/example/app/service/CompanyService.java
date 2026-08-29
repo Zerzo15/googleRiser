@@ -1,6 +1,9 @@
 package com.example.app.service;
 
+import java.net.URI;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -26,18 +29,37 @@ public class CompanyService {
 
     public CompanyDto registerCompany(Company company, String username) throws Exception{
 
-        String safeName = company.getName();
-        String safeDomain = company.getDomain();
+        String safeName = company.getName() == null ? null : company.getName().trim();
+        String safeDomain = normalizeDomain(company.getDomain());
 
         if (safeName == null || safeName.trim().isEmpty()) {
             throw new Exception("Error: Enter Company Name");
         }
 
-        if (companyRepo.existsByName(safeName)
-                || (safeDomain != null && !safeDomain.trim().isEmpty() && companyRepo.existsByDomain(safeDomain))) {
+        Optional<Company> existingCompany = companyRepo.findByNameIgnoreCase(safeName);
+        if (existingCompany.isEmpty() && safeDomain != null && !safeDomain.isEmpty()) {
+            existingCompany = companyRepo.findByDomainIgnoreCase(safeDomain);
+        }
+
+        if (existingCompany.isPresent()) {
+            Company companyInDatabase = existingCompany.get();
+            String existingDomain = normalizeDomain(companyInDatabase.getDomain());
+            if (safeDomain == null || existingDomain == null || safeDomain.equals(existingDomain)) {
+                if (existingDomain != null && !existingDomain.equals(companyInDatabase.getDomain())) {
+                    companyInDatabase.setDomain(existingDomain);
+                    companyRepo.save(companyInDatabase);
+                }
+                return new CompanyDto(
+                    companyInDatabase.getId(),
+                    companyInDatabase.getName(),
+                    existingDomain
+                );
+            }
             throw new Exception("Error: Company Already Registered");
         }
 
+        company.setName(safeName);
+        company.setDomain(safeDomain);
         Company savedCompany = companyRepo.save(company);
 
         return new CompanyDto(
@@ -45,6 +67,34 @@ public class CompanyService {
             safeName,
             safeDomain
         );
+    }
+
+    /**
+     * Stores one canonical host regardless of whether the user entered a host
+     * or pasted a complete URL such as https://vng.com.vn/.
+     */
+    static String normalizeDomain(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        String candidate = value.trim();
+        try {
+            URI parsed = URI.create(candidate.matches("^[a-zA-Z][a-zA-Z0-9+.-]*://.*$")
+                    ? candidate
+                    : "https://" + candidate);
+            if (parsed.getHost() != null) {
+                return parsed.getHost().toLowerCase(Locale.ROOT).replaceFirst("^www\\.", "");
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Fall back to a conservative string cleanup below.
+        }
+
+        return candidate
+                .replaceFirst("^[a-zA-Z][a-zA-Z0-9+.-]*://", "")
+                .split("[/?#]", 2)[0]
+                .toLowerCase(Locale.ROOT)
+                .replaceFirst("^www\\.", "");
     }
 
     public CompanyProfile getProfile(Long companyId) throws Exception {

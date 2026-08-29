@@ -5,6 +5,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +21,7 @@ public class CompanyIntelligenceService {
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
 
-    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent}")
+    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent}")
     private String geminiApiUrl;
 
     private final HttpClient httpClient;
@@ -64,16 +65,16 @@ public class CompanyIntelligenceService {
             """.formatted(name, domain);
 
         // Injecting the googleSearch tool to enable native internet access
-        Map<String, Object> requestBodyMap = java.util.Map.of(
-            "contents", java.util.List.of(
-                java.util.Map.of("parts", java.util.List.of(
-                    java.util.Map.of("text", prompt)
+        Map<String, Object> requestBodyMap = Map.of(
+            "contents", List.of(
+                Map.of("parts", List.of(
+                    Map.of("text", prompt)
                 ))
             ),
-            "tools", java.util.List.of(
-                java.util.Map.of("googleSearch", java.util.Map.of())
+            "tools", List.of(
+                Map.of("googleSearch", Map.of())
             ),
-            "generationConfig", java.util.Map.of(
+            "generationConfig", Map.of(
                 "responseMimeType", "application/json"
             )
         );
@@ -81,8 +82,9 @@ public class CompanyIntelligenceService {
         String requestBody = objectMapper.writeValueAsString(requestBodyMap);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(geminiApiUrl + "?key=" + geminiApiKey))
+                .uri(URI.create(geminiApiUrl))
                 .header("Content-Type", "application/json")
+                .header("x-goog-api-key", geminiApiKey)
                 .timeout(Duration.ofSeconds(25))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .build();
@@ -94,9 +96,22 @@ public class CompanyIntelligenceService {
         }
 
         JsonNode root = objectMapper.readTree(response.body());
-        String rawJson = root.path("candidates").get(0)
-                .path("content").path("parts").get(0)
-                .path("text").asText();
+        JsonNode candidates = root.path("candidates");
+        if (!candidates.isArray() || candidates.isEmpty()) {
+            throw new RuntimeException("AI API returned no candidates");
+        }
+
+        JsonNode parts = candidates.get(0).path("content").path("parts");
+        if (!parts.isArray() || parts.isEmpty() || !parts.get(0).has("text")) {
+            throw new RuntimeException("AI API returned no analysis text");
+        }
+
+        String rawJson = parts.get(0).path("text").asText().trim();
+        if (rawJson.startsWith("```") && rawJson.endsWith("```")) {
+            rawJson = rawJson.replaceFirst("^```(?:json)?\\s*", "")
+                    .replaceFirst("\\s*```$", "")
+                    .trim();
+        }
 
         return objectMapper.readValue(rawJson, AiCompanyAnalysisDto.class);
     }
